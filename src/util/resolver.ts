@@ -1,6 +1,7 @@
-import { ModuleDeclarationKind, SourceFile, ExportDeclaration } from 'ts-morph';
+import { ModuleDeclarationKind, Node, SourceFile, ExportDeclaration, FunctionDeclarationStructure } from 'ts-morph';
 import { createExportMap } from '@util/mapper';
 import Output from '@instances/output';
+import cli from '@instances/cli';
 
 export function resolveExportTypes(source: SourceFile) {
   for (const [name, declaration] of createExportMap(source)) {
@@ -12,12 +13,7 @@ export function resolveExportTypes(source: SourceFile) {
       hasDeclareKeyword: true
     });
 
-    mdl.addExportDeclaration({
-      namespaceExport: 'default',
-      moduleSpecifier: id
-    });
-
-    function traverse(node: ExportDeclaration) {
+    function traverseExports(node: ExportDeclaration) {
       const file = node.getModuleSpecifierSourceFile();
 
       if (file.isInNodeModules()) {
@@ -37,23 +33,60 @@ export function resolveExportTypes(source: SourceFile) {
           const value = symbol.getValueDeclaration();
           if (!value) continue;
 
-          switch (value.getKindName()) {
-            case 'FunctionDeclaration':
-            // console.log('Function');
-            // console.log((value as FunctionDeclaration).getType());
-            // value.getAncestors();
-            // console.log(value.forEachDescendant(n => console.log(n.getType().getText())));
-            case 'VariableDeclaration':
-            // console.log(value.getType().getText());
-            default:
-              console.log(value.getKindName());
+          // Remove unused typings
+
+          if (cli.flags.unused && Node.isReferenceFindable(value)) {
+            const refs = value.findReferencesAsNodes();
+            if (refs.length < 1) continue;
+          }
+
+          if (Node.isEnumDeclaration(value)) {
+            const struct = value.getStructure();
+
+            struct.isConst = true;
+            struct.hasDeclareKeyword = false;
+            struct.isExported = true;
+
+            mdl.addEnum(struct);
+          } else if (Node.isFunctionDeclaration(value)) {
+            const struct = value.getStructure() as FunctionDeclarationStructure;
+
+            // Delete function argument initializers & make argument optional as it has an initializer
+            struct.parameters.map(e => e.initializer && delete e.initializer && (e.hasQuestionToken = true));
+            struct.isExported = true;
+
+            mdl.addFunction(struct);
+          } else if (Node.isVariableDeclaration(value)) {
+            const structure = value.getStructure();
+            const statement = value.getVariableStatement();
+            if (!statement) return;
+            // mdl.addStatements(statement.getStructure());
+            // console.log(value.getStructure());
+            console.log(value.getVariableStatement().forEachChild(console.log));
+          } else if (Node.isTypeLiteral(value)) {
+
+          } else if (Node.isInterfaceDeclaration(value)) {
+            const structure = value.getStructure();
+
+            structure.isExported = true;
+
+            mdl.addInterface(structure);
+          } else if (Node.isTypeAliasDeclaration(value)) {
+            const structure = value.getStructure();
+
+            structure.isExported = true;
+
+            mdl.addTypeAlias(structure);
           }
         }
-        // console.log(exported.map(e => e.getValueDeclaration()?.getType().getText()));
-        // console.log('Named:', file.getExportSymbols().map(e => e.getDeclarations().map(e => e.getType().getText())).flat());
       }
     }
 
-    traverse(declaration);
+    traverseExports(declaration);
+
+    mdl.addExportDeclaration({
+      namespaceExport: 'default',
+      moduleSpecifier: id
+    });
   }
 }
