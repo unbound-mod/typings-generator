@@ -14,6 +14,12 @@
       ],
       "@instances/*": [
         "instances/*"
+      ],
+      "@visitors/*": [
+        "visitors/*"
+      ],
+      "@visitors": [
+        "visitors/index.ts"
       ]
     }
   }

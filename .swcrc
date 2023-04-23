@@ -1,7 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/swcrc",
-  "minify": true,
-  "sourceMaps": true,
+  "sourceMaps": "inline",
   "module": {
     "type": "commonjs"
   },
@@ -39,6 +38,12 @@
       ],
       "@instances/*": [
         "instances/*"
+      ],
+      "@visitors/*": [
+        "visitors/*"
+      ],
+      "@visitors": [
+        "visitors/index.ts"
       ]
     },
     "transform": {
