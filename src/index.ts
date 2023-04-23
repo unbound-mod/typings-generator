@@ -75,7 +75,7 @@ if (!fs.existsSync(file)) {
 		});
 	}).join('\n');
 
-	out = 'import React from 'react'\n\n' + printSync(parseSync(out, { syntax: 'typescript' }))?.code;
+	out = 'import React from "react"\n\n' + printSync(parseSync(out, { syntax: 'typescript' }))?.code;
 	fs.writeFileSync(path.resolve(process.cwd(), 'output.d.ts'), out, 'utf-8');
 }
 
