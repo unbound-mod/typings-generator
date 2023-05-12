@@ -9,11 +9,10 @@ export default function (data: Visitor) {
   const path = resolvePath(node.source.value, dir);
   const contents = extname(path) !== '.json' ? visit(path, store) : null;
 
+
   for (const spec of node.specifiers) {
     const kind = spec.type;
-
     // console.log(spec.local.value, spec);
-
     store.variables.set(spec.local.value, {
       _raw: spec,
       kind,
