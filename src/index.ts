@@ -5,86 +5,93 @@ import visit from '@util/visit';
 import path from 'path';
 import fs from 'fs';
 
-import './setup';
+import('./setup');
 
 console.clear();
 
 const file = path.resolve(process.cwd(), cli._.api);
+console.info(file);
 
 if (!fs.existsSync(file)) {
-  throw new Error('Could not resolve provided path');
+	throw new Error('Could not resolve provided path');
 } else {
-  let out = '';
-  const result = visit(file);
-  out += Array.from<any>(result.types.values()).map(val => val.contents.code).join('\n');
+	let out = '';
+	const result = visit(file);
+	out += Array.from<any>(result.types.values()).map(val => val.contents.code).join('\n');
 
-  out += Array.from<any>(result.exports.entries()).map(([name, _export]) => {
-    const entries = [];
-    const seen = new Set();
-    const traverse = (node) => {
-      if (node.code) {
-        return entries.push(node.code);
-      }
+	let entries = [];
+	let seen = new Set();
 
-      for (let [name, value] of node.variables.entries()) {
-        console.log(name, value);
-        if (!value?.include) continue;
-        if (seen.has(name)) continue;
-        if (value.imports) {
-          
-          for (const [_name, _import] of value.imports.entries()) {
-            if (seen.has(_name)) continue;
-            try {
-              entries.push(
-                printSync({
-                  body: [_import._raw],
-                  interpreter: null,
-                  span: {
-                    ctxt: 0,
-                    start: 0,
-                    end: 0
-                  },
-                  type: "Module"
-                }).code
-              );
-              seen.add(_name);
-            } catch (error) {
-              console.warn(error, _import);
-            }
-          }
-        }
+	const traverse = (node) => {
+		if (node.code) {
+			return entries.push(node.code);
+		}
 
-        if (value.type === "ImportDeclaration") {
-          value = value.contents;
-        }
+		for (let [name, value] of node.variables.entries()) {
+			if (!value?.include) continue;
+			if (seen.has(name)) continue;
+			if (value.imports) {
 
-        seen.add(name);
-        entries.push(value?.contents?.code);
-      }
+				for (const [_name, _import] of value.imports.entries()) {
+					if (seen.has(_name)) continue;
+					try {
+						entries.push(
+							printSync({
+								body: [_import._raw],
+								interpreter: null,
+								span: {
+									ctxt: 0,
+									start: 0,
+									end: 0
+								},
+								type: "Module"
+							}).code
+						);
+						seen.add(_name);
+					} catch (error) {
+						console.warn(error, _import);
+					}
+				}
+			}
 
-      for (const [name, value] of node.exports.entries()) {
-        if (!value.contents) {
-          console.warn({ name, value, node });
-        } else if (!seen.has(name)) {
-          seen.add(name);
-          entries.push(value.contents.code);
-        }
-      }
-    };
+			if (value.type === "ImportDeclaration") {
+				value = value.contents;
+			}
 
-    traverse(_export.contents);
-    return createModule({
-      entries: entries,
-      name: '@enmity/' + name
-    });
-  }).join('\n');
+			seen.add(name);
+			entries.push(value?.contents?.code);
+		}
 
-  try {
-    out = 'import React from "react"\n\n' + printSync(parseSync(out, { syntax: 'typescript' }))?.code;
-    fs.writeFileSync(path.resolve(process.cwd(), 'output.d.ts'), out, 'utf-8');
-  } catch (error) {
-    console.error(error);
-  }
+		for (const [name, value] of node.exports.entries()) {
+			if (!value.contents) {
+				console.warn({ name, value, node });
+			} else if (!seen.has(name)) {
+				seen.add(name);
+				entries.push(value.contents.code);
+			}
+		}
+	};
+
+	out += Array.from<any>(result.exports.entries()).map(([name, _export]) => {
+		traverse(_export.contents);
+
+		const res = createModule({
+			entries: entries,
+			name: '@unbound/' + name
+		});
+
+		seen = new Set();
+		entries = [];
+
+		return res;
+	}).join('\n');
+
+	try {
+		out = 'import React from "react"\n\n' + printSync(parseSync(out, { syntax: 'typescript' }))?.code;
+		fs.writeFileSync(path.resolve(process.cwd(), 'output.d.ts'), out, 'utf-8');
+	} catch (error) {
+		console.error(error);
+	}
 }
 
 setInterval(() => { }, 1000);

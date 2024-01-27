@@ -1,17 +1,47 @@
-export { default as ExportNamespaceSpecifier } from './ExportNamespaceSpecifier';
-export { default as ExportDefaultExpression } from './ExportDefaultExpression';
-export { default as ExportNamedDeclaration } from './ExportNamedDeclaration';
-export { default as ExportAllDeclaration } from './ExportAllDeclaration';
-export { default as VariableDeclaration } from './VariableDeclaration';
-export { default as FunctionDeclaration } from './FunctionDeclaration';
-export { default as CallExpression } from './CallExpression';
-export { default as ImportDeclaration } from './ImportDeclaration';
-export { default as ExportDeclaration } from './ExportDeclaration';
-export { default as ClassDeclaration } from './ClassDeclaration';
+import ExportNamespaceSpecifier from './ExportNamespaceSpecifier';
+import ExportDefaultExpression from './ExportDefaultExpression';
+import ExportNamedDeclaration from './ExportNamedDeclaration';
+import ExportAllDeclaration from './ExportAllDeclaration';
+import VariableDeclaration from './VariableDeclaration';
+import FunctionDeclaration from './FunctionDeclaration';
+import CallExpression from './CallExpression';
+import ImportDeclaration from './ImportDeclaration';
+import ExportDeclaration from './ExportDeclaration';
+import ClassDeclaration from './ClassDeclaration';
 
 
-export { default as TsInterfaceDeclaration } from './TsInterfaceDeclaration';
-export { default as TsTypeAliasDeclaration } from './TsTypeAliasDeclaration';
-export { default as TsEnumDeclaration } from './TsEnumDeclaration';
+import TsInterfaceDeclaration from './TsInterfaceDeclaration';
+import TsTypeAliasDeclaration from './TsTypeAliasDeclaration';
+import TsEnumDeclaration from './TsEnumDeclaration';
 
-export * as default from '.';
+export {
+	ExportNamespaceSpecifier,
+	ExportAllDeclaration,
+	CallExpression,
+	ClassDeclaration,
+	ExportDeclaration,
+	ExportDefaultExpression,
+	ExportNamedDeclaration,
+	FunctionDeclaration,
+	ImportDeclaration,
+	TsEnumDeclaration,
+	TsInterfaceDeclaration,
+	TsTypeAliasDeclaration,
+	VariableDeclaration
+};
+
+export default {
+	ExportNamespaceSpecifier,
+	ExportAllDeclaration,
+	CallExpression,
+	ClassDeclaration,
+	ExportDeclaration,
+	ExportDefaultExpression,
+	ExportNamedDeclaration,
+	FunctionDeclaration,
+	ImportDeclaration,
+	TsEnumDeclaration,
+	TsInterfaceDeclaration,
+	TsTypeAliasDeclaration,
+	VariableDeclaration
+};

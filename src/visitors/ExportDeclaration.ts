@@ -1,25 +1,29 @@
 import Visitors from '.';
 
 export default function (data: Visitor) {
-  const { node } = data;
+	const { node } = data;
 
-  switch (node.declaration.type) {
-    case 'TsInterfaceDeclaration':
-    case 'FunctionDeclaration':
-    case 'TsEnumDeclaration':
-    case 'VariableDeclaration':
-    case 'TsTypeAliasDeclaration': {
-      node.declare = false;
+	if (!Visitors[node.declaration.type]) {
+		console.warn('Unhandled export visitor type:', node.declaration.type);
+	}
 
-      Visitors[node.declaration.type]({
-        ...data,
-        node: node.declaration,
-        parent: node,
-        isExport: true
-      });
-    } break;
+	switch (node.declaration.type) {
+		case 'TsInterfaceDeclaration':
+		case 'FunctionDeclaration':
+		case 'TsEnumDeclaration':
+		case 'VariableDeclaration':
+		case 'TsTypeAliasDeclaration': {
+			node.declare = false;
 
-    default:
-      console.warn(`Unhandled ${node.declaration.type}`, node);
-  }
+			Visitors[node.declaration.type]({
+				...data,
+				node: node.declaration,
+				parent: node,
+				isExport: true
+			});
+		} break;
+
+		default:
+			console.warn(`Unhandled ${node.declaration.type}`, node);
+	}
 }
