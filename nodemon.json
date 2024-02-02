@@ -1,10 +1,10 @@
 {
-  "ext": "*.*",
-  "exec": "swc src -d dist -D --delete-dir-on-start",
-  "ignore": [
-    "./dist",
-    "./.git/**",
-    "./node_modules/**",
-    "output.d.ts"
-  ]
+	"ext": "*.*",
+	"exec": "swc src -d dist -D --delete-dir-on-start --strip-leading-paths",
+	"ignore": [
+		"./dist",
+		"./.git/**",
+		"./node_modules/**",
+		"output.d.ts"
+	]
 }

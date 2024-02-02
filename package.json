@@ -8,7 +8,7 @@
 	"scripts": {
 		"start": "node .",
 		"dev": "node --inspect .",
-		"build": "swc src -d dist -D --delete-dir-on-start"
+		"build": "swc src -d dist -D --delete-dir-on-start --strip-leading-paths"
 	},
 	"dependencies": {
 		"@swc/core": "^1.3.51",
