@@ -1,97 +1,198 @@
-import { parseSync, printSync } from '@swc/core';
-import createModule from '@util/createModule';
-import cli from '@instances/cli';
-import visit from '@util/visit';
-import path from 'path';
-import fs from 'fs';
+import '@total-typescript/ts-reset';
 
-import('./setup');
+import morph, { ModuleResolutionKind, SyntaxKind, Node, ModuleDeclarationKind, StructureKind } from 'ts-morph';
+import { file } from '~/instances/config';
+import cli from '~/instances/cli';
+import { createLogger } from '~/structures/logger';
 
-console.clear();
 
-const file = path.resolve(process.cwd(), cli._.api);
-console.info(file);
+const Logger = createLogger('Generator');
 
-if (!fs.existsSync(file)) {
-	throw new Error('Could not resolve provided path');
-} else {
-	let out = '';
-	const result = visit(file);
-	out += Array.from<any>(result.types.values()).map(val => val.contents.code).join('\n');
+const project = new morph.Project({
+	tsConfigFilePath: file,
+	compilerOptions: {
+		moduleResolution: ModuleResolutionKind.NodeNext
+	},
+});
 
-	let entries = [];
-	let seen = new Set();
+const output = new morph.Project({
+	compilerOptions: {
+		declaration: true,
+		emitDeclarationOnly: true,
+		outFile: 'output.d.ts'
+	}
+});
 
-	const traverse = (node) => {
-		if (node.code) {
-			return entries.push(node.code);
-		}
+const globals = new morph.Project({
+	compilerOptions: {
+		declaration: true,
+		emitDeclarationOnly: true,
+		outFile: 'globals.d.ts'
+	}
+});
 
-		for (let [name, value] of node.variables.entries()) {
-			if (!value?.include) continue;
-			if (seen.has(name)) continue;
-			if (value.imports) {
+const utilities = new morph.Project({
+	compilerOptions: {
+		declaration: true,
+		emitDeclarationOnly: true,
+		outFile: 'utilities.d.ts'
+	}
+});
 
-				for (const [_name, _import] of value.imports.entries()) {
-					if (seen.has(_name)) continue;
-					try {
-						entries.push(
-							printSync({
-								body: [_import._raw],
-								interpreter: null,
-								span: {
-									ctxt: 0,
-									start: 0,
-									end: 0
-								},
-								type: "Module"
-							}).code
-						);
-						seen.add(_name);
-					} catch (error) {
-						console.warn(error, _import);
+project.addSourceFilesFromTsConfig(file);
+
+const utilitiesFile = output.createSourceFile('utilities.d.ts', '', { overwrite: true });
+const globalsFile = output.createSourceFile('globals.d.ts', '', { overwrite: true });
+const outputFile = output.createSourceFile('output.d.ts', '', { overwrite: true });
+const api = project.getSourceFile(cli._.root);
+
+function handleFile(file: morph.SourceFile) {
+	const exports = file.getExportedDeclarations();
+
+	for (const [name, exp] of exports) {
+		const id = `@unbound/${name}`;
+		const module = outputFile.addModule({
+			name: `"${id}"`,
+			declarationKind: ModuleDeclarationKind.Module,
+			hasDeclareKeyword: true,
+		});
+
+		Logger.warn(`Traversing module ${id}`);
+
+		for (const node of exp) {
+			if (node.getKind() === SyntaxKind.SourceFile) {
+				const file = node.getSourceFile();
+				const symbols = file.getExportedDeclarations();
+
+				for (const [name, declarations] of symbols) {
+					Logger.info(`Traversing ${id} -> ${name}`);
+
+					function handlePayload(decl: morph.Node) {
+						if (Node.isFunctionDeclaration(decl)) {
+							// Infer a return value type if it is not already set
+							decl.setReturnType(decl.getReturnType().getText());
+
+							// Async anotation is not allowed in ambient modules
+							decl.setIsAsync(false);
+
+							// Remove function source
+							decl.removeBody();
+
+							const parameters = decl.getParameters();
+
+							for (const parameter of parameters) {
+								// Infer a parameter type if it is not already set
+								parameter.setType(parameter.getType().getText());
+
+								// Remove initializers for function parameters and make them optional instead
+								if (parameter.hasInitializer()) {
+									parameter.setHasQuestionToken(true);
+									parameter.removeInitializer();
+								}
+
+								// Rename object nodes to options as ambient modules don't support object destructuring
+								for (const child of parameter.getChildren()) {
+									if (Node.isObjectBindingPattern(child)) {
+										child.replaceWithText('options');
+									}
+								}
+							}
+
+							module.addFunction(decl.getStructure() as morph.FunctionDeclarationStructure);
+						} else if (Node.isVariableDeclaration(decl)) {
+							decl.setType(decl.getType().getText());
+							decl.removeInitializer();
+
+							module.addVariableStatement(decl.getVariableStatement().getStructure());
+						} else if (Node.isEnumDeclaration(decl)) {
+							module.addEnum(decl.getStructure());
+						} else if (Node.isInterfaceDeclaration(decl)) {
+							module.addInterface(decl.getStructure());
+						} else {
+							Logger.warn(decl.getText());
+						}
+					}
+
+					if (name === 'default') {
+						module.addVariableStatement({
+							declarations: [
+								{
+									name: '_default',
+									type: declarations[0].getText()
+								}
+							]
+						});
+						module.addExportAssignment({
+							expression: '_default',
+							isExportEquals: false,
+							// leadingTrivia: 'default'
+							// kind: SyntaxKind.DefaultKeyword
+						});
+						// handlePayload(declarations[0])
+						continue;
+					}
+
+					for (const decl of declarations) {
+						handlePayload(decl);
 					}
 				}
 			}
-
-			if (value.type === "ImportDeclaration") {
-				value = value.contents;
-			}
-
-			seen.add(name);
-			entries.push(value?.contents?.code);
 		}
 
-		for (const [name, value] of node.exports.entries()) {
-			if (!value.contents) {
-				console.warn({ name, value, node });
-			} else if (!seen.has(name)) {
-				seen.add(name);
-				entries.push(value.contents.code);
-			}
-		}
-	};
-
-	out += Array.from<any>(result.exports.entries()).map(([name, _export]) => {
-		traverse(_export.contents);
-
-		const res = createModule({
-			entries: entries,
-			name: '@unbound/' + name
-		});
-
-		seen = new Set();
-		entries = [];
-
-		return res;
-	}).join('\n');
-
-	try {
-		out = 'import React from "react"\n\n' + printSync(parseSync(out, { syntax: 'typescript' }))?.code;
-		fs.writeFileSync(path.resolve(process.cwd(), 'output.d.ts'), out, 'utf-8');
-	} catch (error) {
-		console.error(error);
+		Logger.success(`Finished traversing module ${id}`);
 	}
 }
 
-setInterval(() => { }, 1000);
+handleFile(api);
+
+// Add globals
+const globalsSource = project.getSourceFile('global.d.ts');
+const utilitiesSource = project.getSourceFile('utils.d.ts');
+
+
+const mdl = globalsSource.getModule('global');
+if (mdl) globalsFile.addModule(mdl.getStructure());
+
+const interfaces = utilitiesSource.getInterfaces();
+for (const interfc of interfaces) {
+	if (interfc.hasDeclareKeyword()) {
+		utilitiesFile.addInterface(interfc.getStructure());
+	}
+}
+
+const types = utilitiesSource.getTypeAliases();
+for (const type of types) {
+	if (type.hasDeclareKeyword()) {
+		utilitiesFile.addTypeAlias(type.getStructure());
+	}
+}
+
+const module = outputFile.addModule({
+	name: '"@unbound"',
+	declarationKind: ModuleDeclarationKind.Module,
+	hasDeclareKeyword: true
+});
+
+for (const mdl of outputFile.getModules()) {
+	const name = mdl.compilerNode.name.text;
+	if (!name.startsWith('@unbound')) continue;
+
+	const [, sub] = name.split('/');
+
+	module.addExportDeclaration({
+		kind: StructureKind.ExportDeclaration,
+		namespaceExport: sub,
+		moduleSpecifier: name
+	});
+}
+
+globalsFile.addExportDeclaration({});
+
+
+output.save();
+globals.save();
+utilities.save();
+Logger.log('Emitted.');
+
+// Keep process awake to be able to inspect it in Chrome DevTools
+setInterval(() => { }, 5000);
