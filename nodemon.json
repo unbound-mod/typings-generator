@@ -5,8 +5,6 @@
 		"dist",
 		".git",
 		"node_modules",
-		"output.d.ts",
-		"globals.d.ts",
-		"utilities.d.ts"
+		"types"
 	]
 }

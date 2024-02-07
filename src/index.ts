@@ -1,12 +1,16 @@
 import '@total-typescript/ts-reset';
 
 import morph, { ModuleResolutionKind, SyntaxKind, Node, ModuleDeclarationKind, StructureKind } from 'ts-morph';
+import { createLogger } from '~/structures/logger';
+import { existsSync, mkdirSync } from 'fs';
 import { file } from '~/instances/config';
 import cli from '~/instances/cli';
-import { createLogger } from '~/structures/logger';
-
+import path from 'path';
 
 const Logger = createLogger('Generator');
+
+const folder = path.join(__dirname, '..', 'types');
+if (!existsSync(folder)) mkdirSync(folder);
 
 const project = new morph.Project({
 	tsConfigFilePath: file,
@@ -19,7 +23,7 @@ const output = new morph.Project({
 	compilerOptions: {
 		declaration: true,
 		emitDeclarationOnly: true,
-		outFile: 'output.d.ts'
+		outFile: path.join(folder, 'api.d.ts')
 	}
 });
 
@@ -27,7 +31,7 @@ const globals = new morph.Project({
 	compilerOptions: {
 		declaration: true,
 		emitDeclarationOnly: true,
-		outFile: 'globals.d.ts'
+		outFile: path.join(folder, 'globals.d.ts')
 	}
 });
 
@@ -35,15 +39,15 @@ const utilities = new morph.Project({
 	compilerOptions: {
 		declaration: true,
 		emitDeclarationOnly: true,
-		outFile: 'utilities.d.ts'
+		outFile: path.join(folder, 'utilities.d.ts')
 	}
 });
 
 project.addSourceFilesFromTsConfig(file);
 
-const utilitiesFile = output.createSourceFile('utilities.d.ts', '', { overwrite: true });
-const globalsFile = output.createSourceFile('globals.d.ts', '', { overwrite: true });
-const outputFile = output.createSourceFile('output.d.ts', '', { overwrite: true });
+const utilitiesFile = output.createSourceFile(path.join(folder, 'utilities.d.ts'), '', { overwrite: true });
+const globalsFile = output.createSourceFile(path.join(folder, 'globals.d.ts'), '', { overwrite: true });
+const outputFile = output.createSourceFile(path.join(folder, 'api.d.ts'), '', { overwrite: true });
 const api = project.getSourceFile(cli._.root);
 
 function handleFile(file: morph.SourceFile) {
@@ -70,7 +74,7 @@ function handleFile(file: morph.SourceFile) {
 					function handlePayload(decl: morph.Node) {
 						if (Node.isFunctionDeclaration(decl)) {
 							// Infer a return value type if it is not already set
-							decl.setReturnType(decl.getReturnType().getText());
+							decl.setReturnType(decl.getReturnType().getText(decl));
 
 							// Async anotation is not allowed in ambient modules
 							decl.setIsAsync(false);
@@ -82,7 +86,7 @@ function handleFile(file: morph.SourceFile) {
 
 							for (const parameter of parameters) {
 								// Infer a parameter type if it is not already set
-								parameter.setType(parameter.getType().getText());
+								parameter.setType(parameter.getType().getText(parameter));
 
 								// Remove initializers for function parameters and make them optional instead
 								if (parameter.hasInitializer()) {
@@ -98,9 +102,13 @@ function handleFile(file: morph.SourceFile) {
 								}
 							}
 
+							decl.setIsExported(true);
+							decl.setIsDefaultExport(false);
+
+
 							module.addFunction(decl.getStructure() as morph.FunctionDeclarationStructure);
 						} else if (Node.isVariableDeclaration(decl)) {
-							decl.setType(decl.getType().getText());
+							decl.setType(decl.getType().getText(decl));
 							decl.removeInitializer();
 
 							module.addVariableStatement(decl.getVariableStatement().getStructure());
@@ -109,26 +117,11 @@ function handleFile(file: morph.SourceFile) {
 						} else if (Node.isInterfaceDeclaration(decl)) {
 							module.addInterface(decl.getStructure());
 						} else {
-							Logger.warn(decl.getText());
+							Logger.warn(decl.getKindName(), decl.getText());
 						}
 					}
 
 					if (name === 'default') {
-						module.addVariableStatement({
-							declarations: [
-								{
-									name: '_default',
-									type: declarations[0].getText()
-								}
-							]
-						});
-						module.addExportAssignment({
-							expression: '_default',
-							isExportEquals: false,
-							// leadingTrivia: 'default'
-							// kind: SyntaxKind.DefaultKeyword
-						});
-						// handlePayload(declarations[0])
 						continue;
 					}
 
@@ -138,6 +131,11 @@ function handleFile(file: morph.SourceFile) {
 				}
 			}
 		}
+
+		module.addExportDeclaration({
+			namespaceExport: 'default',
+			moduleSpecifier: id
+		});
 
 		Logger.success(`Finished traversing module ${id}`);
 	}
@@ -175,7 +173,7 @@ const module = outputFile.addModule({
 
 for (const mdl of outputFile.getModules()) {
 	const name = mdl.compilerNode.name.text;
-	if (!name.startsWith('@unbound')) continue;
+	if (!name.startsWith('@unbound/')) continue;
 
 	const [, sub] = name.split('/');
 
@@ -185,6 +183,11 @@ for (const mdl of outputFile.getModules()) {
 		moduleSpecifier: name
 	});
 }
+
+module.addExportDeclaration({
+	namespaceExport: 'default',
+	moduleSpecifier: '@unbound'
+});
 
 globalsFile.addExportDeclaration({});
 
