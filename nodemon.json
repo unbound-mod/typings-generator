@@ -1,6 +1,6 @@
 {
 	"ext": "*.*",
-	"exec": "swc src -d dist -D --delete-dir-on-start --strip-leading-paths && node --inspect . \"C:\\Users\\eternal\\Documents\\Projects\\TypeScript\\unbound-client\\src\\api\\index.ts\"",
+	"exec": "swc src -d dist -D --delete-dir-on-start --strip-leading-paths && node --inspect . \"C:\\Users\\eternal\\Documents\\Projects\\TypeScript\\unbound-client\"",
 	"ignore": [
 		"dist",
 		".git",
