@@ -11,6 +11,10 @@ export const Overrides = {
 	Variables: {
 		React: 'React: typeof globalThis.React',
 		ReactNative: 'ReactNative: typeof globalThis.ReactNative',
+		Reanimated: 'Reanimated: typeof import("react-native-reanimated")',
+		Gestures: 'Gestures: typeof import("react-native-gesture-handler")',
+		Clipboard: 'Clipboard: typeof import("@react-native-clipboard/clipboard")',
+		Moment: 'Moment: typeof import("moment")'
 	}
 };
 

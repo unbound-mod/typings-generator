@@ -21,7 +21,7 @@ declare global {
 		interfaces: Map<Symbol, InterfaceDeclaration>;
 		enums: Map<Symbol, EnumDeclaration>;
 		variables: Map<Symbol, VariableDeclaration>;
-		imports: Map<Symbol, ImportDeclaration | Identifier>;
+		imports: Map<string, ImportDeclaration | Identifier>;
 		functions: Map<Symbol, FunctionDeclaration>;
 		modules: Map<Symbol, ModuleDeclaration>;
 		files: Map<Symbol, SourceFile>;

@@ -13,7 +13,6 @@ import cli from '~/instances/cli';
 import api from '~/projects/api';
 
 sourcemaps.install();
-
 global.logger = createLogger('Generator');
 
 const entry = join(cli._.root, 'src', 'api', 'index.ts');

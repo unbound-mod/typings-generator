@@ -1,5 +1,6 @@
 import { Node, ModuleDeclaration, type SourceFile } from 'ts-morph';
-import { add, createCache, getModuleTypeImports, getTypeReferences } from '~/utilities';
+import { add, createCache, getTypeReferences } from '~/utilities';
+import { SemicolonPreference } from 'typescript';
 import api from '~/projects/api';
 
 function visitFile(file: SourceFile, isDirectory: boolean, moduleOrName: ModuleDeclaration | SourceFile | string, cache?: DeclarationCache) {
@@ -36,14 +37,11 @@ function visitFile(file: SourceFile, isDirectory: boolean, moduleOrName: ModuleD
 		}
 	}
 
-	const imports = file.getImportDeclarations();
-	for (const imp of imports) {
-		const nodes = getModuleTypeImports(imp);
-
-		for (const node of nodes) {
-			add(node, isDirectory, module, cache);
-		}
-	}
+	module.formatText({
+		baseIndentSize: 0,
+		indentSize: 2,
+		semicolons: SemicolonPreference.Insert,
+	});
 
 	logger.success(`Processed ${name}.`);
 }

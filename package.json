@@ -21,6 +21,17 @@
 		"@total-typescript/ts-reset": "^0.5.1",
 		"@types/node": "^20.11.16",
 		"@types/react": "^18.2.55",
-		"react-native": "^0.73.4"
+		"moment": "^2.30.1",
+		"react-native": "^0.73.4",
+		"react-native-gesture-handler": "^2.15.0",
+		"react-native-reanimated": "^3.7.0"
+	},
+	"pnpm": {
+		"peerDependencyRules": {
+			"ignoreMissing": [
+				"react",
+				"react-native"
+			]
+		}
 	}
 }

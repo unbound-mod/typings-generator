@@ -12,7 +12,8 @@ function getModuleTypeImports(i: ImportDeclaration) {
 	const named = i.getNamedImports();
 	for (const name of named) {
 		const declaration = name.getImportDeclaration();
-		if (declaration) imports.push(declaration);
+
+		if (declaration) imports.push(i);
 	}
 
 	const def = i.getDefaultImport();

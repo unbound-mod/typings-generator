@@ -1,4 +1,4 @@
-import type {
+import {
 	ExportDeclaration,
 	ExportedDeclarations,
 	FunctionDeclarationStructure,
@@ -70,9 +70,9 @@ function add(node: ImportDeclaration | ExportedDeclarations | ExportDeclaration,
 	} else if (Node.isTypeAliasDeclaration(node) && !cache.types.has(node.getSymbol())) {
 		destination.addTypeAlias(node.getStructure());
 		cache.types.set(node.getSymbol(), node);
-	} else if (Node.isImportDeclaration(node) && !cache.imports.has(node.getSymbol())) {
+	} else if (Node.isImportDeclaration(node) && !cache.imports.has(node.getText())) {
 		destination.addImportDeclaration(node.getStructure());
-		cache.imports.set(node.getSymbol(), node);
+		cache.imports.set(node.getText(), node);
 	} else if (Node.isModuleDeclaration(node) && !cache.modules.has(node.getSymbol())) {
 		destination.addModule(node.getStructure());
 		cache.modules.set(node.getSymbol(), node);
@@ -85,31 +85,33 @@ function add(node: ImportDeclaration | ExportedDeclarations | ExportDeclaration,
 			const value = symbol?.getValueDeclaration?.() as VariableDeclaration;
 
 			const references = getTypeReferences(value, cache);
-			console.log(references.map(r => r.getText()));
+			for (const reference of references) {
+				add(reference, isDirectory, destination, cache);
+			}
 
 			if (value) {
-				// console.log(value);
 				add(value, isDirectory, destination, cache);
 			}
-		}
-	} else if (Node.isBindingElement(node)) {
-		// TODO
-	}
-
-	const imps = file.getImportDeclarations();
-
-	for (const imp of imps) {
-		const nodes = getModuleTypeImports(imp);
-
-		for (const node of nodes) {
-			if (cache.imports.has(node.getSymbol())) continue;
-			add(node, isDirectory, destination, cache);
 		}
 	}
 
 	const extras = getTypeReferences(node, cache);
 	for (const extra of extras) {
 		add(extra, isDirectory, destination, cache);
+	}
+
+	if (!Node.isImportDeclaration(node)) {
+		const imports = file.getImportDeclarations();
+
+		for (const i of imports) {
+			const modules = getModuleTypeImports(i);
+
+			for (const node of modules) {
+				if (cache.imports.has(node.getText())) continue;
+				add(node, isDirectory, destination, cache);
+			}
+		}
+
 	}
 }
 

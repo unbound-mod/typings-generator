@@ -8,14 +8,15 @@ function getTypeReferences(node: Node, cache: DeclarationCache) {
 		const node = stack.shift();
 		if (!node) continue;
 
-		if (Node.isTypeReference(node)) {
+
+		if (Node.isTypeReference(node) || Node.isInterfaceDeclaration(node) || Node.isTypeAliasDeclaration(node) || Node.isModuleBlock(node) || Node.isModuleDeclaration(node)) {
 			handleNode(node, result, cache);
 
 			const type = node.getType();
 			const symbols = [type?.getAliasSymbol(), type?.getSymbol()].filter(Boolean);
 
 			for (const symbol of symbols) {
-				const stack = symbol.getDeclarations();
+				const stack = symbol.getDeclarations() ?? [];
 
 				useStack(stack, result, cache);
 			}
@@ -35,8 +36,7 @@ function useStack(stack: Node[], result: Node[], cache: DeclarationCache) {
 
 		handleNode(node, result, cache);
 
-		const children = node.getChildren() ?? [];
-		stack.push(...children);
+		stack.push(...node.getChildren());
 	}
 }
 
@@ -45,7 +45,24 @@ function handleNode(node: Node, result: Node[], cache: DeclarationCache) {
 	const isInNodeModules = node.getSourceFile().isInNodeModules();
 	const isInCache = cache.references.has(node.getSymbol());
 
-	if (!isValidNode || isInCache || isInNodeModules || node.hasDeclareKeyword()) return;
+	if (!isValidNode || isInCache || isInNodeModules || node.hasDeclareKeyword?.()) return;
+
+	const block = node.getParent();
+	const parent = block?.getParent();
+
+	if (Node.isModuleBlock(block) && Node.isModuleDeclaration(parent) && !cache.references.has(parent?.getSymbol())) {
+		const name = parent.getNameNode()?.getText();
+
+		if (name !== 'global' && parent.hasDeclareKeyword()) {
+			parent.setHasDeclareKeyword(false);
+		}
+
+		result.push(parent);
+		return cache.references.set(parent.getSymbol(), node);
+	}
+
+	const isType = Node.isInterfaceDeclaration(node) || Node.isTypeAliasDeclaration(node);
+	if (isType && cache.references.has(parent?.getSymbol())) return;
 
 	result.push(node);
 	cache.references.set(node.getSymbol(), node);
