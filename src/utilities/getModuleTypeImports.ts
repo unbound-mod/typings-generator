@@ -5,7 +5,7 @@ function getModuleTypeImports(i: ImportDeclaration) {
 	const file = i.getSourceFile();
 	const imports = [];
 
-	if (!source.isInNodeModules() || file.isInNodeModules()) {
+	if (!source?.isInNodeModules() || file.isInNodeModules()) {
 		return imports;
 	}
 

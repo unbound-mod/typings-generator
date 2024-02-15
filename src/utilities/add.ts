@@ -18,7 +18,18 @@ function add(node: ImportDeclaration | ExportedDeclarations | ExportDeclaration,
 
 	if (Node.isFunctionDeclaration(node) && !cache.functions.has(node.getSymbol())) {
 		// Infer a return value type if it is not already set
-		node.setReturnType(node.getReturnType().getText(node));
+
+		// console.log(node.getReturnType().getSymbol()?.getDeclarations().map(r => r.getText()));
+		// const references = getTypeReferences();
+		// console.log(references);
+
+		// console.log(node.getReturnType().getAliasSymbol()?.getDeclarations().map(r => r.getText()));
+		// const retType = node.getReturnType();
+		// const apparent = retType?.getAliasSymbol()?.getDeclarations();
+
+		// console.log(apparent?.map(r => r.getText()));
+
+		node.setReturnType((node.getReturnType()).getText(node));
 
 		// Async anotation is not allowed in ambient modules
 		node.setIsAsync(false);

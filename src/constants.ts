@@ -1,6 +1,6 @@
 import { join } from 'path';
 
-export const TypesFolder = join(__dirname, '..', 'types');
+export const TypesFolder = join(__dirname, '..', 'packages', 'unbound-types');
 
 export const Regex = {
 	NOT_INDEX: /index\.((j|t)s(x|))/gmi,

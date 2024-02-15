@@ -9,8 +9,8 @@ function getTypeReferences(node: Node, cache: DeclarationCache) {
 		if (!node) continue;
 
 
-		if (Node.isTypeReference(node) || Node.isInterfaceDeclaration(node) || Node.isTypeAliasDeclaration(node) || Node.isModuleBlock(node) || Node.isModuleDeclaration(node)) {
-			handleNode(node, result, cache);
+		if (Node.isTypeReference(node) || Node.isInterfaceDeclaration(node) || Node.isTypeAliasDeclaration(node) || Node.isModuleBlock(node) || Node.isModuleDeclaration(node) || Node.isVariableDeclaration(node) || Node.isFunctionDeclaration(node) || Node.isTypeQuery(node)) {
+			handleNode(stack, node, result, cache);
 
 			const type = node.getType();
 			const symbols = [type?.getAliasSymbol(), type?.getSymbol()].filter(Boolean);
@@ -34,14 +34,18 @@ function useStack(stack: Node[], result: Node[], cache: DeclarationCache) {
 		const node = stack.shift();
 		if (!node) continue;
 
-		handleNode(node, result, cache);
+		handleNode(stack, node, result, cache);
 
 		stack.push(...node.getChildren());
 	}
 }
 
-function handleNode(node: Node, result: Node[], cache: DeclarationCache) {
-	const isValidNode = Node.isTypeAliasDeclaration(node) || Node.isInterfaceDeclaration(node) || Node.isModuleDeclaration(node);
+function handleNode(stack: Node[], node: Node, result: Node[], cache: DeclarationCache) {
+	if (Node.isFunctionDeclaration(node) && cache.functions.has(node.getSymbol())) {
+		return;
+	}
+
+	const isValidNode = Node.isTypeAliasDeclaration(node) || Node.isInterfaceDeclaration(node) || Node.isModuleDeclaration(node) || Node.isFunctionDeclaration(node);
 	const isInNodeModules = node.getSourceFile().isInNodeModules();
 	const isInCache = cache.references.has(node.getSymbol());
 
@@ -52,13 +56,18 @@ function handleNode(node: Node, result: Node[], cache: DeclarationCache) {
 
 	if (Node.isModuleBlock(block) && Node.isModuleDeclaration(parent) && !cache.references.has(parent?.getSymbol())) {
 		const name = parent.getNameNode()?.getText();
+		if (name === 'global') return;
 
-		if (name !== 'global' && parent.hasDeclareKeyword()) {
+		if (parent.hasDeclareKeyword()) {
 			parent.setHasDeclareKeyword(false);
 		}
 
 		result.push(parent);
 		return cache.references.set(parent.getSymbol(), node);
+	}
+
+	if (Node.isFunctionDeclaration(node)) {
+		console.log(node.getType()?.getApparentType().getText(node));
 	}
 
 	const isType = Node.isInterfaceDeclaration(node) || Node.isTypeAliasDeclaration(node);

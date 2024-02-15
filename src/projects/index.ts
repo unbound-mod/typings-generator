@@ -12,6 +12,7 @@ export function saveAll() {
 	Utilities.file.save();
 
 	Global.file.fixUnusedIdentifiers();
+	Global.file.fixMissingImports();
 	Global.file.save();
 
 	API.file.fixUnusedIdentifiers();

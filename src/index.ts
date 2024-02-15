@@ -1,5 +1,5 @@
 import { add, appendTypesToNode, createCache, getFilesRecursively, getTypeReferences, visitFile } from '~/utilities';
-import { Node, ModuleDeclarationKind, StructureKind } from 'ts-morph';
+import { Node, ModuleDeclarationKind, StructureKind, Project } from 'ts-morph';
 import { existsSync, readdirSync, statSync } from 'fs';
 import { dirname, join, relative, sep } from 'path';
 import { createLogger } from '~/instances/logger';
@@ -52,6 +52,14 @@ for (const api of apis) {
 // Add globals
 const globalsSource = unbound.instance.getSourceFile('global.d.ts');
 const utilitiesSource = unbound.instance.getSourceFile('utils.d.ts');
+
+globals.file.addImportDeclaration({
+	moduleSpecifier: './utilities'
+});
+
+globals.file.addImportDeclaration({
+	moduleSpecifier: './api'
+});
 
 const mdl = globalsSource.getModule('global');
 if (mdl) {
