@@ -2,7 +2,7 @@
 	"name": "unbound-types",
 	"version": "1.0.0",
 	"description": "Official typings for Unbound.",
-	"author": "Mario <mariovparaschiv@gmail.com> (github.com/localip)",
+	"author": "Mario <me@marioparaschiv.com> (github.com/marioparaschiv)",
 	"license": "Unlicensed",
 	"types": "api.d.ts",
 	"exports": {

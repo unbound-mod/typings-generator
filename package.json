@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"description": "Typings generator for Unbound's API.",
 	"main": "dist/index.js",
-	"author": "Mario <mariovparaschiv@gmail.com> (github.com/localip)",
+	"author": "Mario <me@marioparaschiv.com> (github.com/marioparaschiv)",
 	"license": "Unlicensed",
 	"scripts": {
 		"start": "node .",
