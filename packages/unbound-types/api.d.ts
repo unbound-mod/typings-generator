@@ -128,6 +128,7 @@ declare module "@unbound/commands" {
 
 declare module "@unbound/components" {
     import type { ViewStyle } from "react-native";
+  import type { ViewStyle } from "react-native";
   import type { TextInputProps } from "react-native";
 
   export function CodeBlock(options: CodeblockProps): React.JSX.Element;
@@ -146,8 +147,25 @@ declare module "@unbound/components" {
   };
 
   export const Section: ({ children, style, margin, ...props }: SectionProps) => React.JSX.Element;
-  export const Switch: AnyProps<{ FormSwitch: any; }>;
-  export const Checkbox: AnyProps<{ FormCheckbox: any; }>;
+  export const Switch: any;
+  export const Checkbox: any;
+
+  export function Overflow(options: OverflowProps): React.JSX.Element;
+
+  interface OverflowProps {
+    items: OverflowItem[] | Array<OverflowItem[]>;
+    title?: string;
+    iconSource?: number;
+    scale?: number;
+    style?: ViewStyle;
+  }
+
+  interface OverflowItem {
+    label: string;
+    IconComponent?: React.ComponentType;
+    iconSource?: number;
+    action: () => any;
+  }
 
   export function Search(props: SearchProps): React.JSX.Element;
 
@@ -156,21 +174,6 @@ declare module "@unbound/components" {
     isRound?: boolean;
     isClearable?: boolean;
     leadingIcon?: any;
-  }
-
-  export function Overflow(options: OverflowProps): React.JSX.Element;
-
-  interface OverflowProps {
-    items: OverflowItem[];
-    iconSource?: number;
-    scale?: number;
-  }
-
-  interface OverflowItem {
-    label: string;
-    IconComponent?: React.ComponentType;
-    iconSource?: number;
-    action: () => any;
   }
 }
 
@@ -226,6 +229,10 @@ declare module "@unbound/dialogs" {
      * @default : true
      */
     cancelButton?: boolean;
+    /**
+     * Optional callback for the press of the `cancel` button
+     */
+    onCancel?: Fn;
   }
 }
 
@@ -236,9 +243,6 @@ declare module "@unbound/i18n" {
 
   export const state: { locale: string; messages: {}; };
   export const Strings: any;
-}
-
-declare module "@unbound/managers" {
 }
 
 declare module "@unbound/metro/api" {
@@ -289,11 +293,14 @@ declare module "@unbound/metro/common" {
   export const Constants: AnyProps<{ Fonts: any; Endpoints: any; }>;
   export const Theme: AnyProps<{ colors: any; internal: any; }>;
   export const REST: AnyProps<{ getAPIBaseURL: any; }>;
-  export const i18n: AnyProps<{ Messages: any; }>;
+  export const i18n: AnyProps<{ Messages: any; _requestedLocale: any; }>;
 }
 
 declare module "@unbound/metro/components" {
-  export const Redesign: AnyProps<{ SegmentedControl: any; Stack: any; }>;
+  export const Redesign: Module<"Button" | "TextInput" | "IconButton" | "openAlert" | "AlertModal" | "AlertActionButton" | "Navigator" | "Backdrop" | "useNavigation" | "dismissAlerts" | "TableRowGroup" | "ContextMenu" | "TableRow" | "TableSwitchRow" | "TableRowIcon" | "TableRowDivider" | "SegmentedControlPages" | "SegmentedControl" | "RowButton" | "Card" | "Pile" | "PileOverflow" | "Tabs" | "useSegmentedControlState">;
+
+  export type Module<TProps extends string> = PropertyRecordOrArray<TProps[], TProps>;
+
   export const Slider: any;
   export const Media: AnyProps<{ openMediaModal: any; }>;
   export const HelpMessage: Fn<any>;
@@ -382,6 +389,166 @@ declare module "@unbound/metro" {
       : Fn>
     : Fn;
 
+  /**
+   * This algorithm is significantly different from a regular search.
+   * Due to its nature, it works for the
+   * @findByProps filter only.
+   * It does a one-time operation at startup where it assigns every property
+   * in each module into a map and then assigns the indexes of modules that
+   * include this prop inside as a Set (there should be no duplicate indexes).
+   *
+   * Here is an example of how this works:
+   * First, let's assume we have some object like this (Discord's module object is much
+   * larger scaled at around 9000 items but this is a small scale example):
+   * @example
+   * 	const data = [
+   * 		{
+   * 			test: 5,
+   * 			other: 'hello world',
+   * 			hello: 'world'
+   * 		},
+   * 		{
+   * 			navigation: {
+   * 				abcd: 5,
+   * 				testing: 6
+   * 			},
+   *
+   * 			getNavigation() {
+   * 				return this.navigation
+   * 			}
+   * 		},
+   * 		{
+   * 			test: 8,
+   *
+   * 			meow() {
+   * 				console.log('meow');
+   * 			},
+   *
+   * 			items: [2, 4, 6, 8, 10]
+   * 		},
+   * 		{
+   * 			idk: '4 things',
+   * 			test: [56, 2]
+   * 		}
+   * 	]
+   * @end
+   *
+   * If we were to apply the mapping, we would end up with something like:
+   * @example
+   * 	Map (8) {
+   * 	    "test" => Set (3) {0, 2, 3}
+   * 	    "other" => Set (1) {0}
+   * 	    "hello" => Set (1) {0}
+   * 	    "navigation" => Set (1) {1}
+   * 	    "getNavigation" => Set (1) {1}
+   * 	    "meow" => Set (1) {2}
+   * 	    "items" => Set (1) {2}
+   * 	    "idk" => Set (1) {3}
+   * 	}
+   * @end
+   * @question So what's the intuition behind this?
+   * @answer Well, as you can see
+   * @test has 3 items inside.
+   * This is because the
+   * @test property appears in the 0th
+   * object, the 2nd object, and the 3rd object in our example.
+   * This being, 3 objects in total, hence 3 indexes inside,
+   * pointing to the correct indexes in the array.
+   * @question Okay, so how do we find modules with this?
+   * @answer By getting the indexes that all of the properties share.
+   * If we search for
+   * @test and
+   * @other then they both share the index 0,
+   * so we can say that the object we're looking for is that the 0th
+   * index, then we can simply index our original array at that index!
+   * If we instead search for
+   * @test and
+   * @items then they both share
+   * the index of 2, so we can do the same thing and index our original array.
+   * If we search for
+   * @test
+   * @items and
+   * @other then they dont all share
+   * an index, so this means that no object exists with all 3 of these keys
+   * inside. For a case like this we can return null.
+   * @question How do the speeds compare?
+   * @answer Let's discuss the logical aspect first, in terms of Big O notation.
+   * With our old algorithm, where k is the number of properties to search for,
+   * and n is the size of the object, the best case scenario is O(k) (if the
+   * item you're searching for is at the 0th index) and a worst case of O(n*k)
+   * (if the item you're looking for is at the very last index).
+   *
+   * With our new algorithm, we perform a one-time operation of mapping the object,
+   * which is O(n*m), where n is the object length and m is the average number of
+   * properties per object. However, execution after the fact is *always* O(k),
+   * because accessing the map to get the indexes that the property appears in
+   * only needs to happen as many times as there are keys searched for in the
+   * function call, and operations to parse the indexes are negligible.
+   *
+   * In simler terms, we only need to access the map as many times as there are
+   * properties when calling the function, and accessing maps is O(1).
+   *
+   * We have also tested the speed, in a worst case scenario for both cases.
+   * First, we create a very large array of objects (of length 100,000).
+   * @example
+   * 	const data = new Array(1e5).fill(null).map(x => ({}));
+   *
+   * 	data.push({
+   *       prop1: 'assume this is important',
+   * 	     test: [56, 2]
+   * 	})
+   * @end
+   *
+   * Then we test the speed with searching for the very last module in both cases,
+   * and we test 1e4 (10,000) times to get a good average result.
+   * @example
+   * 	 function testSpeed(callback: CallableFunction, label: string, iterations = 1e4) {
+   * 	     const results = [];
+   *
+   *       for (let i = 0; i < iterations - 1; i++) {
+   * 	         const start = performance.now();
+   * 	         callback('test', 'prop1');
+   * 	         const end = performance.now();
+   *
+   * 	         results.push(end - start);
+   * 	     }
+   *
+   * 	     console.log(`${label} - ${results.reduce((pre, cur) => pre + cur, 0) / iterations}`);
+   * 	 }
+   *
+   *   testSpeed(slowFindByProps, 'Slow');
+   *   testSpeed(fastFindByProps, 'Fast');
+   * @end
+   *
+   * The results (rounded, with array size 1e5 and 1e4 iterations):
+   * @slow 10 results
+   * 1.6411299999892712
+   * 1.8532500000119213
+   * 1.7846800000071525
+   * 1.7910600000202657
+   * 1.7802800000071526
+   * 1.7538200000047683
+   * 1.7722900000095367
+   * 1.8124300000011921
+   * 1.7448499999761582
+   * 1.8099299999952316
+   * @fast 10 results
+   * 0.0006600000202656
+   * 0.0006199999988079
+   * 0.0006300000071526
+   * 0.0005900000333786
+   * 0.0006100000023842
+   * 0.0005900000095367
+   * 0.0005900000154972
+   * 0.0005399999976158
+   * 0.0006099999964237
+   * 0.0006599999845028
+   *
+   * TS Playground Link to test yourself:
+   * @link https://bit.ly/fastFindByProps
+   */
+  export function fastFindByProps<U extends string, T extends U[] | StringFindWithOptions<U> | BulkFind<U>>(...args: T): PropertyRecordOrArray<T, U>;
+
   export const on: typeof addListener;
 
   export function addListener(listener: (mdl: any) => void): () => boolean;
@@ -389,33 +556,6 @@ declare module "@unbound/metro" {
   export const off: typeof removeListener;
 
   export function removeListener(listener: (mdl: any) => void): void;
-}
-
-declare module "@unbound/metro/registry" {
-  /**
-   * NOTE:
-   * For some reason you can only ever export up to 3 modules at once using bulk?
-   * This issue is more than just "we're loading too fast let's lazy load it" I think
-   */
-  export const bulkLazy: (...items: BulkItem[]) => AnyProps<Record<string, any>>[];
-
-  export interface BulkItem extends Omit<SearchOptions, 'initial' | 'cache'> {
-    filter: Filter;
-  }
-
-  export type Filter = (mdl: any, id: number | string) => boolean | never;
-  export type SearchOptions = {
-    esModules?: boolean;
-    interop?: boolean;
-    initial?: any[];
-    cache?: boolean;
-    lazy?: boolean;
-    raw?: boolean;
-    all?: boolean;
-    initialize?: boolean;
-  };
-
-  export const internalGetLazily: <TName extends string>(name: TName, filter: Fn) => AnyProps<{ [k in Exclude<TName, Record<string, any>>]: any; }>;
 }
 
 declare module "@unbound/metro/stores" {
@@ -494,9 +634,9 @@ declare module "@unbound/storage" {
 
   export function remove(store: string, key: string): void;
 
-  export function getStore(store: string): any;
+  export function getStore(store: string): { set: (key: string, value: any) => void; get: <T extends unknown>(key: string, def: T) => T & {}; toggle: (key: string, def: any) => void; remove: (key: string) => void; useSettingsStore: () => { set: (key: string, value: any) => void; get: <T extends unknown>(key: string, def: T) => T & {}; toggle: (key: string, def: any) => void; remove: (key: string) => void; }; };
 
-  export function useSettingsStore(store: string, predicate?: (payload: Payload) => boolean): any;
+  export function useSettingsStore(store: string, predicate?: (payload: Payload) => boolean): { set: (key: string, value: any) => void; get: <T extends unknown>(key: string, def: T) => T & {}; toggle: (key: string, def: any) => void; remove: (key: string) => void; };
 
   export interface Payload {
     store: string;
@@ -507,7 +647,7 @@ declare module "@unbound/storage" {
   export const DCDFileManager: DCDFileManagerType;
 
   export type DCDFileManagerType = DCDFileManagerConstants & {
-    readFile(path: string): Promise<unknown>;
+    readFile(path: string, encoding: 'utf-8' | 'utf8' | 'base64'): Promise<string>;
     writeFile(type: 'documents' | 'cache', path: string, data: string, encoding: 'utf-8' | 'utf8' | 'base64'): Promise<string>;
     removeFile(type: 'documents' | 'cache', path: string): Promise<any>;
     readAsset(): Promise<unknown>;
@@ -545,11 +685,12 @@ declare module "@unbound/toasts" {
     icon?: string | number | ImageSourcePropType;
     id?: any;
     buttons?: ToastButton[];
+    tintedIcon?: boolean;
   }
 
   export interface ToastButton {
     color?: ButtonColors[keyof ButtonColors];
-    variant?: ButtonLooks[keyof ButtonLooks] | 'primary' | 'primary-alt' | 'secondary' | 'secondary-alt';
+    variant?: ButtonLooks[keyof ButtonLooks] | 'primary' | 'secondary' | 'tertiary';
     size?: ButtonSizes[keyof ButtonSizes] | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
     iconPosition?: 'start' | 'end';
     content: string;
@@ -583,10 +724,19 @@ declare module "@unbound/toasts" {
   }
 }
 
-declare module "@unbound/updater" {
-}
-
 declare module "@unbound/utilities" {
+  /**
+   * @description Compares 2 semantic versions.
+   * @cases
+   * @ > 0 - versionA is newer than versionB
+   * @ < 0 - versionA is older than versionB
+   * @ = 0 - versionA and versionB are the same
+   * @param {T extends string} versionA
+   * @param {T extends string} versionB
+   * @return {number}
+   */
+  export function compareSemanticVersions(versionA: string, versionB: string): number;
+
   export function callbackWithAnimation<T extends Fn>(callback: T, duration?: number): T;
 
   /**
@@ -683,13 +833,11 @@ declare module "@unbound" {
     export * as components from "@unbound/components";
     export * as dialogs from "@unbound/dialogs";
     export * as i18n from "@unbound/i18n";
-    export * as managers from "@unbound/managers";
     export * as metro from "@unbound/metro";
     export * as native from "@unbound/native";
     export * as patcher from "@unbound/patcher";
     export * as storage from "@unbound/storage";
     export * as toasts from "@unbound/toasts";
-    export * as updater from "@unbound/updater";
     export * as utilities from "@unbound/utilities";
     export * as default from "@unbound";
 }

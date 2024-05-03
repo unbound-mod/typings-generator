@@ -1,13 +1,17 @@
 {
-	"name": "unbound-types",
-	"version": "1.0.0",
+	"name": "@unbound-mod/types",
+	"version": "<version>",
 	"description": "Official typings for Unbound.",
 	"author": "Mario <me@marioparaschiv.com> (github.com/marioparaschiv)",
 	"license": "Unlicensed",
-	"types": "api.d.ts",
-	"exports": {
-		"./import": "./api.d.ts"
-	},
+	"types": "global.d.ts",
+	"files": [
+		"api.d.ts",
+		"global.d.ts",
+		"utilities.d.ts",
+		"package.json",
+		"tsconfig.json"
+	],
 	"dependencies": {
 		"@react-native-clipboard/clipboard": "^1.13.2",
 		"moment": "^2.30.1",

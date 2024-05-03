@@ -1,19 +1,33 @@
 import { add, appendTypesToNode, createCache, getFilesRecursively, getTypeReferences, visitFile } from '~/utilities';
-import { Node, ModuleDeclarationKind, StructureKind, Project } from 'ts-morph';
-import { existsSync, readdirSync, statSync } from 'fs';
-import { dirname, join, relative, sep } from 'path';
+import { Node, ModuleDeclarationKind, StructureKind } from 'ts-morph';
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
+import { dirname, join, relative, resolve, sep } from 'path';
 import { createLogger } from '~/instances/logger';
+import { Regex, TypesFolder } from '~/constants';
 import utilities from '~/projects/utilities';
 import sourcemaps from 'source-map-support';
 import unbound from '~/projects/unbound';
 import globals from '~/projects/global';
 import { saveAll } from '~/projects';
-import { Regex } from '~/constants';
 import cli from '~/instances/cli';
 import api from '~/projects/api';
 
 sourcemaps.install();
 global.logger = createLogger('Generator');
+
+const packagePath = join(cli._.root, 'package.json');
+if (!existsSync(packagePath)) {
+	logger.error('Provided path does not have package.json at the top-level. This is needed to fetch the version of the typings.');
+	process.exit(-1);
+}
+
+const packageContent = readFileSync(packagePath, 'utf-8');
+const client = JSON.parse(packageContent);
+
+if (!client.version) {
+	logger.error('The "version" field in package.json should not be empty.');
+	process.exit(-1);
+}
 
 const entry = join(cli._.root, 'src', 'api', 'index.ts');
 if (!existsSync(entry)) {
@@ -143,5 +157,16 @@ module.addExportDeclaration({
 globals.file.addExportDeclaration({});
 
 logger.info('Emitting typings...');
+
 saveAll();
+
+{
+	const presetPackagePath = resolve(TypesFolder, '_package.json');
+	const packagePath = resolve(TypesFolder, 'package.json');
+	const content = require(presetPackagePath);
+
+	content.version = client.version;
+	writeFileSync(packagePath, JSON.stringify(content, null, 2), 'utf-8');
+}
+
 logger.success('Emitted typings.');

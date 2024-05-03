@@ -43,8 +43,9 @@ export interface Manifest {
     name: string;
     description: string;
     authors: Author[];
-    icon: '__custom__' | (string & {}) | { uri: string; };
+    icon: (string & {}) | { uri: string; };
     updates: string;
+    main: string;
     version: string;
     folder: string;
     path: string;
@@ -56,6 +57,6 @@ export type Author = {
     	id: `${number}`;
     };
 
-export function getStore(store: string): any;
+export function getStore(store: string): { set: (key: string, value: any) => void; get: <T extends unknown>(key: string, def: T) => T & {}; toggle: (key: string, def: any) => void; remove: (key: string) => void; useSettingsStore: () => { set: (key: string, value: any) => void; get: <T extends unknown>(key: string, def: T) => T & {}; toggle: (key: string, def: any) => void; remove: (key: string) => void; }; };
 
 export { };

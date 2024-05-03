@@ -1,16 +1,23 @@
 {
-	"name": "unbound-types",
-	"version": "1.0.0",
-	"description": "Official typings for Unbound.",
-	"author": "Mario <me@marioparaschiv.com> (github.com/marioparaschiv)",
-	"license": "Unlicensed",
-	"types": "global.d.ts",
-	"dependencies": {
-		"@react-native-clipboard/clipboard": "^1.13.2",
-		"moment": "^2.30.1",
-		"react": "^18.2.0",
-		"react-native": "^0.73.4",
-		"react-native-gesture-handler": "^2.15.0",
-		"react-native-reanimated": "^3.7.0"
-	}
+  "name": "@unbound-mod/types",
+  "version": "1.0.0",
+  "description": "Official typings for Unbound.",
+  "author": "Mario <me@marioparaschiv.com> (github.com/marioparaschiv)",
+  "license": "Unlicensed",
+  "types": "global.d.ts",
+  "files": [
+    "api.d.ts",
+    "global.d.ts",
+    "utilities.d.ts",
+    "package.json",
+    "tsconfig.json"
+  ],
+  "dependencies": {
+    "@react-native-clipboard/clipboard": "^1.13.2",
+    "moment": "^2.30.1",
+    "react": "^18.2.0",
+    "react-native": "^0.73.4",
+    "react-native-gesture-handler": "^2.15.0",
+    "react-native-reanimated": "^3.7.0"
+  }
 }

@@ -66,10 +66,6 @@ function handleNode(stack: Node[], node: Node, result: Node[], cache: Declaratio
 		return cache.references.set(parent.getSymbol(), node);
 	}
 
-	if (Node.isFunctionDeclaration(node)) {
-		console.log(node.getType()?.getApparentType().getText(node));
-	}
-
 	const isType = Node.isInterfaceDeclaration(node) || Node.isTypeAliasDeclaration(node);
 	if (isType && cache.references.has(parent?.getSymbol())) return;
 
