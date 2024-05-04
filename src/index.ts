@@ -1,6 +1,6 @@
 import { add, appendTypesToNode, createCache, getFilesRecursively, getTypeReferences, visitFile } from '~/utilities';
-import { Node, ModuleDeclarationKind, StructureKind } from 'ts-morph';
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
+import { Node, ModuleDeclarationKind, StructureKind } from 'ts-morph';
 import { dirname, join, relative, resolve, sep } from 'path';
 import { createLogger } from '~/instances/logger';
 import { Regex, TypesFolder } from '~/constants';

@@ -145,8 +145,37 @@ declare module "@unbound/components" {
     style?: ViewStyle;
     margin?: boolean;
   };
+  export type Module<TProps extends string> = PropertyRecordOrArray<TProps[], TProps>;
+  export type PropertyRecordOrArray<T extends any[], U extends string> = T extends BulkFind<U>
+    ? BulkModuleByProperty<T>
+    : SingleModuleByProperty<T>;
+  export type BulkFind<T extends string> = [...AnyProps<{ params: T[]; }>[], AnyProps<{ bulk: true; }>];
+  export type BulkModuleByProperty<T extends any[]> = {
+    [K in keyof T]: AnyProps<{
+      [P in T[K]['params'][number]]: any
+    }>
+  };
+  export type SingleModuleByProperty<T extends any[]> = T extends [...any, infer O extends SearchOptions]
+    ? AllValues<O, AnyProps<{ [k in Exclude<T[number], Record<string, any>>]: any }>>
+    : AnyProps<{ [k in Exclude<T[number], Record<string, any>>]: any }>;
+  export type AllValues<T extends Record<string, any>, U extends unknown> = T extends { all: true; } ? U[] : U;
+  export type SearchOptions = {
+    esModules?: boolean;
+    interop?: boolean;
+    initial?: any[];
+    cache?: boolean;
+    lazy?: boolean;
+    raw?: boolean;
+    all?: boolean;
+    initialize?: boolean;
+  };
 
   export const Section: ({ children, style, margin, ...props }: SectionProps) => React.JSX.Element;
+
+  export function find(filter: Filter, options?: SearchOptions): any;
+
+  export type Filter = (mdl: any, id: number | string) => boolean | never;
+
   export const Switch: any;
   export const Checkbox: any;
 
@@ -300,6 +329,29 @@ declare module "@unbound/metro/components" {
   export const Redesign: Module<"Button" | "TextInput" | "IconButton" | "openAlert" | "AlertModal" | "AlertActionButton" | "Navigator" | "Backdrop" | "useNavigation" | "dismissAlerts" | "TableRowGroup" | "ContextMenu" | "TableRow" | "TableSwitchRow" | "TableRowIcon" | "TableRowDivider" | "SegmentedControlPages" | "SegmentedControl" | "RowButton" | "Card" | "Pile" | "PileOverflow" | "Tabs" | "useSegmentedControlState">;
 
   export type Module<TProps extends string> = PropertyRecordOrArray<TProps[], TProps>;
+  export type PropertyRecordOrArray<T extends any[], U extends string> = T extends BulkFind<U>
+    ? BulkModuleByProperty<T>
+    : SingleModuleByProperty<T>;
+  export type BulkFind<T extends string> = [...AnyProps<{ params: T[]; }>[], AnyProps<{ bulk: true; }>];
+  export type BulkModuleByProperty<T extends any[]> = {
+    [K in keyof T]: AnyProps<{
+      [P in T[K]['params'][number]]: any
+    }>
+  };
+  export type SingleModuleByProperty<T extends any[]> = T extends [...any, infer O extends SearchOptions]
+    ? AllValues<O, AnyProps<{ [k in Exclude<T[number], Record<string, any>>]: any }>>
+    : AnyProps<{ [k in Exclude<T[number], Record<string, any>>]: any }>;
+  export type AllValues<T extends Record<string, any>, U extends unknown> = T extends { all: true; } ? U[] : U;
+  export type SearchOptions = {
+    esModules?: boolean;
+    interop?: boolean;
+    initial?: any[];
+    cache?: boolean;
+    lazy?: boolean;
+    raw?: boolean;
+    all?: boolean;
+    initialize?: boolean;
+  };
 
   export const Slider: any;
   export const Media: AnyProps<{ openMediaModal: any; }>;

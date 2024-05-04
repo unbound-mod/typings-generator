@@ -9,7 +9,7 @@ function getTypeReferences(node: Node, cache: DeclarationCache) {
 		if (!node) continue;
 
 
-		if (Node.isTypeReference(node) || Node.isInterfaceDeclaration(node) || Node.isTypeAliasDeclaration(node) || Node.isModuleBlock(node) || Node.isModuleDeclaration(node) || Node.isVariableDeclaration(node) || Node.isFunctionDeclaration(node) || Node.isTypeQuery(node)) {
+		if (Node.isIdentifier(node) || Node.isTypeReference(node) || Node.isInterfaceDeclaration(node) || Node.isTypeAliasDeclaration(node) || Node.isModuleBlock(node) || Node.isModuleDeclaration(node) || Node.isVariableDeclaration(node) || Node.isFunctionDeclaration(node) || Node.isTypeQuery(node)) {
 			handleNode(stack, node, result, cache);
 
 			const type = node.getType();
