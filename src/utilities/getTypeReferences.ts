@@ -8,9 +8,8 @@ function getTypeReferences(node: Node, cache: DeclarationCache) {
 		const node = stack.shift();
 		if (!node) continue;
 
-
 		if (Node.isIdentifier(node) || Node.isTypeReference(node) || Node.isInterfaceDeclaration(node) || Node.isTypeAliasDeclaration(node) || Node.isModuleBlock(node) || Node.isModuleDeclaration(node) || Node.isVariableDeclaration(node) || Node.isFunctionDeclaration(node) || Node.isTypeQuery(node)) {
-			handleNode(stack, node, result, cache);
+			handleNode(node, result, cache);
 
 			const type = node.getType();
 			const symbols = [type?.getAliasSymbol(), type?.getSymbol()].filter(Boolean);
@@ -34,13 +33,13 @@ function useStack(stack: Node[], result: Node[], cache: DeclarationCache) {
 		const node = stack.shift();
 		if (!node) continue;
 
-		handleNode(stack, node, result, cache);
+		handleNode(node, result, cache);
 
 		stack.push(...node.getChildren());
 	}
 }
 
-function handleNode(stack: Node[], node: Node, result: Node[], cache: DeclarationCache) {
+function handleNode(node: Node, result: Node[], cache: DeclarationCache) {
 	if (Node.isFunctionDeclaration(node) && cache.functions.has(node.getSymbol())) {
 		return;
 	}

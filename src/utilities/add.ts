@@ -8,7 +8,7 @@ import {
 	SourceFile,
 	VariableDeclaration,
 } from 'ts-morph';
-import { getModuleTypeImports, getTypeReferences } from '~/utilities';
+import { addExternalModuleImports, getTypeReferences } from '~/utilities';
 import { Overrides } from '~/constants';
 import { Node } from 'ts-morph';
 
@@ -115,14 +115,8 @@ function add(node: ImportDeclaration | ExportedDeclarations | ExportDeclaration,
 		const imports = file.getImportDeclarations();
 
 		for (const i of imports) {
-			const modules = getModuleTypeImports(i);
-
-			for (const node of modules) {
-				if (cache.imports.has(node.getText())) continue;
-				add(node, isDirectory, destination, cache);
-			}
+			addExternalModuleImports(destination, cache, i);
 		}
-
 	}
 }
 

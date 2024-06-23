@@ -9,11 +9,14 @@ export { default as API } from './api';
 
 export function saveAll() {
 	Utilities.file.fixUnusedIdentifiers();
+	Utilities.file.formatText({ tabSize: 2 });
 	Utilities.file.save();
 
 	Global.file.fixUnusedIdentifiers();
+	Global.file.formatText({ tabSize: 2 });
 	Global.file.save();
 
 	API.file.fixUnusedIdentifiers();
+	API.file.formatText({ tabSize: 2 });
 	API.file.save();
 }

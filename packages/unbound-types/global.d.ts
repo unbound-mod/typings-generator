@@ -3,8 +3,8 @@ import "./api";
 
 declare global {
     const __r: {
-        	importAll: Fn;
-        } & ((id: number | string) => void);
+        importAll: Fn;
+    } & ((id: number | string) => void);
     var React: typeof import('react');
     var ReactNative: typeof import('react-native');
     var modules: { [id: number]: any; };
@@ -15,26 +15,26 @@ declare global {
 
     interface Window {
         loader: {
-            	type: string;
-            	version: string;
-            };
+            type: string;
+            version: string;
+        };
         UNBOUND_DEV_IP: string;
         UNBOUND_SETTINGS: {
-            	contents: string;
-            	path: string;
-            }[];
+            contents: string;
+            path: string;
+        }[];
         UNBOUND_PLUGINS: {
-            	manifest: Manifest,
-            	bundle: string;
-            }[];
+            manifest: Manifest,
+            bundle: string;
+        }[];
         UNBOUND_FONTS: {
-            	name: string;
-            	path: string;
-            }[];
+            name: string;
+            path: string;
+        }[];
         UNBOUND_THEMES: {
-            	manifest: Manifest,
-            	bundle: string;
-            }[];
+            manifest: Manifest,
+            bundle: string;
+        }[];
     }
 }
 
@@ -53,9 +53,9 @@ export interface Manifest {
 }
 
 export type Author = {
-    	name: string;
-    	id: `${number}`;
-    };
+    name: string;
+    id: `${number}`;
+};
 
 export function getStore(store: string): { set: (key: string, value: any) => void; get: <T extends unknown>(key: string, def: T) => T & {}; toggle: (key: string, def: any) => void; remove: (key: string) => void; useSettingsStore: () => { set: (key: string, value: any) => void; get: <T extends unknown>(key: string, def: T) => T & {}; toggle: (key: string, def: any) => void; remove: (key: string) => void; }; };
 

@@ -130,7 +130,7 @@ appendTypesToNode(globalsSource, globals.file, 'hasDeclareKeyword');
 appendTypesToNode(utilitiesSource, utilities.file, 'hasDeclareKeyword');
 
 const module = api.file.addModule({
-	name: '"@unbound"',
+	name: "'@unbound'",
 	declarationKind: ModuleDeclarationKind.Module,
 	hasDeclareKeyword: true
 });

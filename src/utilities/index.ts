@@ -1,4 +1,4 @@
-export { default as getModuleTypeImports } from './getModuleTypeImports';
+export { default as addExternalModuleImports } from './addExternalModuleImports';
 export { default as getFilesRecursively } from './getFilesRecursively';
 export { default as appendTypesToNode } from './appendTypesToNode';
 export { default as getTypeReferences } from './getTypeReferences';

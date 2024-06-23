@@ -1,6 +1,5 @@
 import { Node, ModuleDeclaration, type SourceFile } from 'ts-morph';
 import { add, createCache, getTypeReferences } from '~/utilities';
-import { SemicolonPreference } from 'typescript';
 import api from '~/projects/api';
 
 function visitFile(file: SourceFile, isDirectory: boolean, moduleOrName: ModuleDeclaration | SourceFile | string, cache?: DeclarationCache) {
@@ -10,7 +9,7 @@ function visitFile(file: SourceFile, isDirectory: boolean, moduleOrName: ModuleD
 	logger.info(`Processing ${name}...`);
 
 	const module = moduleOrName instanceof ModuleDeclaration ? moduleOrName : api.file.addModule({
-		name: `"${name}"`,
+		name: `'${name}'`,
 		hasDeclareKeyword: true
 	});
 
@@ -36,12 +35,6 @@ function visitFile(file: SourceFile, isDirectory: boolean, moduleOrName: ModuleD
 			}
 		}
 	}
-
-	module.formatText({
-		baseIndentSize: 0,
-		indentSize: 2,
-		semicolons: SemicolonPreference.Insert,
-	});
 
 	logger.success(`Processed ${name}.`);
 }
