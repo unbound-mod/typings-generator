@@ -1,8 +1,6 @@
-export { default as addExternalModuleImports } from './addExternalModuleImports';
-export { default as getFilesRecursively } from './getFilesRecursively';
 export { default as appendTypesToNode } from './appendTypesToNode';
-export { default as getTypeReferences } from './getTypeReferences';
+export { default as addTypeReferences } from './addTypeReferences';
 export { default as createCache } from './createCache';
-export { default as visitFile } from './visitFile';
+export { default as isPrivate } from './isPrivate';
 export { default as colorize } from './colorize';
 export { default as add } from './add';

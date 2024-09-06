@@ -1,16 +1,12 @@
-import { add, appendTypesToNode, createCache, getFilesRecursively, getTypeReferences, visitFile } from '~/utilities';
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
-import { Node, ModuleDeclarationKind, StructureKind } from 'ts-morph';
-import { dirname, join, relative, resolve, sep } from 'path';
+import { add, appendTypesToNode, createCache, addTypeReferences, isPrivate } from '~/utilities';
+import { ModuleDeclarationKind, Node, StructureKind } from 'ts-morph';
+import { API, Global, saveAll, Unbound, Utilities } from '~/projects';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { createLogger } from '~/instances/logger';
-import { Regex, TypesFolder } from '~/constants';
-import utilities from '~/projects/utilities';
 import sourcemaps from 'source-map-support';
-import unbound from '~/projects/unbound';
-import globals from '~/projects/global';
-import { saveAll } from '~/projects';
+import { TypesFolder } from '~/constants';
+import { join, resolve } from 'path';
 import cli from '~/instances/cli';
-import api from '~/projects/api';
 
 sourcemaps.install();
 global.logger = createLogger('Generator');
@@ -35,43 +31,158 @@ if (!existsSync(entry)) {
 	process.exit(-1);
 }
 
-const directory = dirname(entry);
-const files = readdirSync(directory);
-const apis = files.filter(api => !api.match(Regex.NOT_INDEX));
+const api = Unbound.instance.addSourceFileAtPath(entry);
 
-for (const api of apis) {
-	const path = join(directory, api);
-	const isDirectory = statSync(path).isDirectory();
-	const files = isDirectory ? getFilesRecursively(path) : [path];
+global.moduleMap = new Map<string, ModuleEntry>();
 
-	for (const submodule of files) {
-		const file = unbound.instance.getSourceFile(submodule);
-		const module = relative(directory, submodule);
+for (const [name, exported] of api.getExportedDeclarations().entries()) {
+	const [file] = exported;
 
-		const name = '@unbound/' + module
-			.split(sep)
-			.filter(s => !s.match(Regex.NOT_INDEX))
-			.join('/')
-			.replace(Regex.EXTENSIONS, '');
 
-		if (file) {
-			visitFile(file, isDirectory, name);
-		} else {
-			console.error(`Couldn't find file ${path}`);
+	const sourceFile = file.getSourceFile();
+
+	const entry: ModuleEntry = {
+		sourceFile,
+		name,
+		path: sourceFile.getFilePath(),
+		referencedFiles: new Set(),
+		exported: new Map(),
+		imports: new Map(),
+	};
+
+	global.moduleMap.set(name, entry);
+}
+
+
+const stack = [...global.moduleMap.entries()];
+// Get sub-exports
+while (stack.length) {
+	const [name, mdl] = stack.shift();
+
+	for (const [expName, exps] of mdl.sourceFile.getExportedDeclarations()) {
+		const [exp] = exps;
+
+		if (Node.isSourceFile(exp)) {
+			const newName = `${name}/${expName}`;
+
+			mdl.referencedFiles.add(exp.getFilePath());
+
+			const data: ModuleEntry = {
+				exported: new Map(),
+				imports: new Map(),
+				referencedFiles: new Set(),
+				path: exp.getFilePath(),
+				name: newName,
+				sourceFile: exp
+			};
+
+			global.moduleMap.set(newName, data);
+
+			stack.push([newName, data]);
 		}
 	}
 }
 
 
-// Add globals
-const globalsSource = unbound.instance.getSourceFile('global.d.ts');
-const utilitiesSource = unbound.instance.getSourceFile('utils.d.ts');
+const moduleMapStack = [...global.moduleMap.entries()];
+while (moduleMapStack.length) {
+	const [name, mdl] = moduleMapStack.shift();
 
-globals.file.addImportDeclaration({
+	for (const referenced of mdl.sourceFile.getReferencedSourceFiles()) {
+		if (referenced.isInNodeModules()) continue;
+
+		mdl.referencedFiles.add(referenced.getFilePath());
+	}
+
+	for (const [expName, exps] of mdl.sourceFile.getExportedDeclarations()) {
+		const [node] = exps;
+
+		// Don't export internal @private methods.
+		if (Node.isJSDocable(node) && !isPrivate(node)) {
+			continue;
+		}
+
+		if (!Node.isSourceFile(node)) {
+			mdl.exported.set(expName, node);
+		} else {
+			const newName = `${name}/${expName}`;
+
+			const data: ModuleEntry = {
+				exported: new Map(),
+				imports: new Map(),
+				referencedFiles: new Set(),
+				path: node.getFilePath(),
+				name: newName,
+				sourceFile: node
+			};
+
+			global.moduleMap.set(newName, data);
+
+			moduleMapStack.push([newName, data]);
+		}
+	};
+}
+
+
+for (const [name, mdl] of global.moduleMap.entries()) {
+	const module = API.file.addModule({
+		name: `"@unbound/${name}"`,
+		declarationKind: ModuleDeclarationKind.Module,
+		hasDeclareKeyword: true
+	});
+
+	const cache = createCache();
+
+	for (const [expName, exp] of mdl.exported) {
+		logger.debug(`Exporting @unbound/${name} → ${expName}`);
+
+		add(exp, module, cache);
+	}
+
+	for (const child of mdl.exported.values()) {
+		addTypeReferences(child, module, cache);
+	}
+};
+
+
+const mainModule = API.file.addModule({
+	name: '"@unbound"',
+	declarationKind: ModuleDeclarationKind.Module,
+	hasDeclareKeyword: true
+});
+
+for (const mdl of API.file.getModules()) {
+	const name = mdl.compilerNode.name.text;
+	if (!name.startsWith('@unbound/')) continue;
+
+	const submodule = name.split('/');
+	if (submodule.length > 2) continue;
+
+	// if(Node.isJSDocable(node) && !shouldExport(node)) return;
+
+	mainModule.addExportDeclaration({
+		kind: StructureKind.ExportDeclaration,
+		namespaceExport: submodule[1],
+		moduleSpecifier: name
+	});
+}
+
+mainModule.addExportDeclaration({
+	namespaceExport: 'default',
+	moduleSpecifier: '@unbound'
+});
+
+saveAll();
+
+// Add globals
+const globalsSource = Unbound.instance.getSourceFile('global.d.ts');
+const utilitiesSource = Unbound.instance.getSourceFile('utils.d.ts');
+
+Global.file.addImportDeclaration({
 	moduleSpecifier: './utilities'
 });
 
-globals.file.addImportDeclaration({
+Global.file.addImportDeclaration({
 	moduleSpecifier: './api'
 });
 
@@ -87,6 +198,7 @@ if (mdl) {
 		if (!node) continue;
 
 		if (Node.isModuleDeclaration(node)) {
+			if (node.getName() != 'global') continue;
 			const locals = node.getLocals();
 
 			const unbound = locals.find(l => l.getName() === 'unbound');
@@ -118,43 +230,14 @@ if (mdl) {
 		stack.push(...children);
 	}
 
-	globals.file.addModule(mdl.getStructure());
-
-	const references = getTypeReferences(mdl, cache);
-	for (const reference of references) {
-		add(reference, false, globals.file, cache);
-	}
+	Global.file.addModule(mdl.getStructure());
+	addTypeReferences(mdl, Global.file, cache);
 }
 
-appendTypesToNode(globalsSource, globals.file, 'hasDeclareKeyword');
-appendTypesToNode(utilitiesSource, utilities.file, 'hasDeclareKeyword');
+appendTypesToNode(globalsSource, Global.file, 'hasDeclareKeyword');
+appendTypesToNode(utilitiesSource, Utilities.file, 'hasDeclareKeyword');
 
-const module = api.file.addModule({
-	name: "'@unbound'",
-	declarationKind: ModuleDeclarationKind.Module,
-	hasDeclareKeyword: true
-});
-
-for (const mdl of api.file.getModules()) {
-	const name = mdl.compilerNode.name.text;
-	if (!name.startsWith('@unbound/')) continue;
-
-	const submodule = name.split('/');
-	if (submodule.length > 2) continue;
-
-	module.addExportDeclaration({
-		kind: StructureKind.ExportDeclaration,
-		namespaceExport: submodule[1],
-		moduleSpecifier: name
-	});
-}
-
-module.addExportDeclaration({
-	namespaceExport: 'default',
-	moduleSpecifier: '@unbound'
-});
-
-globals.file.addExportDeclaration({});
+Global.file.addExportDeclaration({});
 
 logger.info('Emitting typings...');
 

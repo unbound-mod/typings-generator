@@ -10,6 +10,7 @@ function createCache() {
 		types: new Map(),
 		enums: new Map(),
 		files: new Map(),
+		classes: new Map(),
 	};
 
 	return cache;
